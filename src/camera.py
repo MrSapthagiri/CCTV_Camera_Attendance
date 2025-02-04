@@ -1,4 +1,5 @@
 import cv2
+import logging
 
 class Camera:
     def __init__(self, camera_id=0):
@@ -38,8 +39,25 @@ class Camera:
 
     def show_frame(self, frame, window_name='Camera'):
         """Display a frame in a window"""
-        cv2.imshow(window_name, frame)
-        return cv2.waitKey(1) & 0xFF
+        if frame is None:
+            logging.warning("No frame to display.")
+            return
+        
+        try:
+            cv2.imshow(window_name, frame)
+        except Exception as e:
+            logging.error(f"Error displaying frame: {str(e)}")
+            return
+        
+        while True:
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                self.stop()  # Assuming there's a stop method to release the camera
+                cv2.destroyAllWindows()
+                logging.info("Camera window closed.")
+                break
+            elif cv2.waitKey(1) & 0xFF == ord('p'):
+                logging.info("Camera window paused. Press 'q' to quit or any other key to resume.")
+                cv2.waitKey(-1)  # Wait for a key press
 
     def capture_image(self):
         """Capture a single image"""

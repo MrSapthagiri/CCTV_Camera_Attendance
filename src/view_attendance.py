@@ -3,6 +3,8 @@ from datetime import datetime
 from database import db
 from tabulate import tabulate
 
+tolerance_value = 0.1  # 10% tolerance
+
 def view_attendance(date=None):
     """View attendance records for a specific date or all dates"""
     records = db.get_attendance(date)
@@ -26,6 +28,16 @@ def view_attendance(date=None):
     # Display using tabulate for better formatting
     print(tabulate(df, headers='keys', tablefmt='grid', showindex=False))
     print(f"\nTotal Records: {len(df)}")
+    
+    # Calculate attendance percentage
+    expected_attendance = len(db.get_all_users())
+    actual_attendance = len(df)
+    
+    # Check if attendance is within acceptable limits
+    if abs(actual_attendance - expected_attendance) <= tolerance_value * expected_attendance:
+        print(f"Attendance is within acceptable limits ({(actual_attendance / expected_attendance) * 100:.2f}%).")
+    else:
+        print(f"Attendance is outside acceptable limits ({(actual_attendance / expected_attendance) * 100:.2f}%).")
 
 def view_users():
     """View all registered users"""

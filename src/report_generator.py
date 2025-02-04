@@ -62,7 +62,7 @@ class ReportGenerator:
                 # Generate and write statistics
                 stats_df = self._generate_statistics(df)
                 stats_df.to_excel(writer, sheet_name='Statistics', index=True)
-                
+                 
                 # Generate and write daily summary
                 daily_summary = self._generate_daily_summary(df)
                 daily_summary.to_excel(writer, sheet_name='Daily Summary', index=True)
@@ -248,3 +248,8 @@ class ReportGenerator:
             return f"attendance_report_{start_date}_to_{end_date}_{timestamp}.{extension}"
         else:
             return f"attendance_report_all_{timestamp}.{extension}"
+
+if __name__ == "__main__":
+    report_generator = ReportGenerator()
+    report_generator.generate_excel_report(start_date='2025-01-01', end_date='2025-01-31', user_id=None)
+    

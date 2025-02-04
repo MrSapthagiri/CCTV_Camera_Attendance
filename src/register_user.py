@@ -1,110 +1,111 @@
 import cv2
+import dlib
 import os
-import numpy as np
-import pickle
-from database import db
+import uuid
+from dotenv import load_dotenv
+from datetime import datetime
+from pymongo import MongoClient
+import face_recognition  # Ensure you have this library installed
+
+# Load environment variables
+load_dotenv()
+database_url = os.getenv("DATABASE_URL")
+
+# Initialize MongoDB client
+client = MongoClient(database_url)
+db = client['attendance_system']  # Use your database name
+collection = db['employees']  # Use your collection name
+
+# Initialize video capture
+camera_found = False
+for i in range(3):
+    cap = cv2.VideoCapture(i)
+    if cap.isOpened():
+        camera_found = True
+        print(f"Camera opened successfully at index {i}.")
+        break
+    else:
+        print(f"Trying camera index {i}... Camera not found.")
+
+if not camera_found:
+    print("❌ Camera not found. Please check the connection and permissions.")
+    exit(1)
+
+# Load the face detector
+detector = dlib.get_frontal_face_detector()
 
 def register_user():
-    # Get user details
-    name = input("Enter user's full name: ")
-    user_id = input("Enter User ID: ")
-    
-    # Create directories if they don't exist
+    employee_name = input("Enter employee's full name: ")
+    employee_id = input("Enter employee ID: ")
+    attendance_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    user_id = str(uuid.uuid4())
+
     os.makedirs("images/registered", exist_ok=True)
-    os.makedirs("data/encodings", exist_ok=True)
-    
-    # Initialize camera
-    cam = cv2.VideoCapture(0)
-    
-    # Create window
-    cv2.namedWindow("Registration")
-    
+
     while True:
-        ret, frame = cam.read()
+        ret, frame = cap.read()
         if not ret:
-            print("❌ Failed to grab frame")
+            print("❌ Failed to capture image from camera.")
             break
-            
-        # Create a copy for display
-        display_frame = frame.copy()
-        
-        # Get frame dimensions
-        height, width = frame.shape[:2]
-        
-        # Define face rectangle size and position
-        rect_width = int(width * 0.5)
-        rect_height = int(height * 0.7)
-        x = (width - rect_width) // 2
-        y = (height - rect_height) // 2
-        
-        # Draw rectangle
-        cv2.rectangle(display_frame, (x, y), (x + rect_width, y + rect_height), (0, 255, 0), 2)
-        
-        # Add text instructions
-        cv2.putText(display_frame, user_id, (x, y - 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        
-        # Show frame
-        cv2.imshow("Registration", display_frame)
-        
-        # Handle key events
+
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        faces = detector(gray)
+        for face in faces:
+            cv2.rectangle(frame, (face.left(), face.top()), (face.right(), face.bottom()), (255, 0, 0), 2)
+            cv2.putText(frame, employee_name, (face.left(), face.top() - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+
+        cv2.imshow("Register User", frame)
+
         key = cv2.waitKey(1)
-        if key == 27:  # ESC
-            print("\n❌ Registration cancelled")
-            break
-        elif key == 32:  # SPACE
-            # Save the image
+        if key == 32:  # Press space to confirm registration
+            print("User registered!")
+
             img_path = f"images/registered/{user_id}.jpg"
             cv2.imwrite(img_path, frame)
-            
-            # Save face encoding
+
+            # Generate face encoding
+            face_image = face_recognition.load_image_file(img_path)
+            face_encodings = face_recognition.face_encodings(face_image)
+            if not face_encodings:
+                print("No face encodings found. Registration failed.")
+                break
+            elif len(face_encodings) > 1:
+                print("Multiple face encodings found. Registration failed.")
+                break
+            face_encoding = face_encodings[0]  # Get the first face encoding
+
+            # Save employee data to MongoDB
+            employee_data = {
+                "name": employee_name,
+                "employee_id": employee_id,
+                "attendance_time": attendance_time,
+                "image_path": img_path,
+                "face_encoding": face_encoding.tolist()  # Convert to list for MongoDB
+            }
             try:
-                # Convert to grayscale for face detection
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                
-                # Initialize face detector
-                face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-                
-                # Detect faces with more lenient parameters
-                faces = face_cascade.detectMultiScale(
-                    gray,
-                    scaleFactor=1.1,
-                    minNeighbors=3,
-                    minSize=(30, 30)
-                )
-                
-                if len(faces) > 0:
-                    # Get the first face
-                    (x, y, w, h) = faces[0]
-                    face_roi = gray[y:y+h, x:x+w]
-                    face_roi = cv2.resize(face_roi, (100, 100))
-                    
-                    # Store user data in MongoDB
-                    if db.add_user(user_id, name, img_path, face_roi):
-                        print("\n✅ Successfully saved:")
-                        print(f"   - Face image: {img_path}")
-                        print(f"   - User data stored in MongoDB")
-                    else:
-                        print("\n❌ Failed to store user data in MongoDB")
+                result = collection.insert_one(employee_data)
+                if result.inserted_id:
+                    print("Employee data saved successfully.")
                 else:
-                    print("\n❌ No face detected in the image")
-                    os.remove(img_path)  # Remove the saved image
-                    continue
-                    
+                    print("Error saving employee data: Insertion failed.")
+            except MongoClient.InvalidDocument as e:
+                print(f"Error saving employee data: Invalid document - {e}")
+            except MongoClient.WriteConcernError as e:
+                print(f"Error saving employee data: Write concern error - {e}")
             except Exception as e:
-                print(f"\n❌ Error during registration: {str(e)}")
-                if os.path.exists(img_path):
-                    os.remove(img_path)
-                continue
-                
+                print(f"Error saving employee data: {e}")
             break
-    
-    # Cleanup
-    cam.release()
+        elif key == ord('q'):
+            print("Registration canceled.")
+            break
+
+    cap.release()
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     print("\n📸 Instructions:")
-    print("1. Position your face in the green rectangle")
-    print("2. Press SPACE to capture when ready")
-    print("3. Press ESC to cancel\n")
+    print("1. Position your face in front of the camera.")
+    print("2. Press 'space' to capture when ready.")
+    print("3. Press 'q' to cancel.\n")
     register_user()
