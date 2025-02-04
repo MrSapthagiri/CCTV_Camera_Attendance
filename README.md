@@ -1,5 +1,4 @@
-# CCTV_Camera_Attendance
-
+# Camera Attendance System
 
 A Python-based facial recognition attendance system that uses your computer's webcam to register users and mark attendance.
 
