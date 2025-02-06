@@ -58,64 +58,52 @@ def main():
     if recognizer is None:
         return
     
-    # Initialize camera
-    cam = cv2.VideoCapture(0)
-    print("\n🎥 Starting attendance system...")
-    print("Press 'q' to quit\n")
-    
-    while True:
-        ret, frame = cam.read()
-        if not ret:
-            print("❌ Failed to grab frame")
-            break
-            
-        # Create a copy for display
-        display_frame = frame.copy()
-        
-        # Convert to grayscale for face detection
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-        
-        # Process each detected face
-        for (x, y, w, h) in faces:
-            # Draw rectangle around face
-            cv2.rectangle(display_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-            
-            # Get face ROI
-            face_roi = gray[y:y+h, x:x+w]
-            face_roi = cv2.resize(face_roi, (100, 100))
-            
-            # Predict the face
-            label, confidence = recognizer.predict(face_roi)
-            
-            if confidence < 100:  # Lower confidence is better
-                user_id = id_map.get(label, "Unknown")
-                confidence_text = f"{100 - confidence:.1f}%"
-                color = (0, 255, 0)  # Green
-                
-                # Try to mark attendance
-                if mark_attendance(user_id):
-                    print(f"✅ Attendance marked for {user_id}")
-            else:
-                user_id = "Unknown User"
-                confidence_text = "Unknown User"
-                color = (0, 0, 255)  # Red
-            
-            # Display name and confidence
-            cv2.putText(display_frame, f"ID: {user_id}", (x, y-30), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
-            cv2.putText(display_frame, f"Conf: {confidence_text}", (x, y-10),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
-        
-        # Show the frame
-        cv2.imshow('Attendance System', display_frame)
-        
-        # Check for 'q' key to quit
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-    
-    # Cleanup
-    cam.release()
+    # Initialize IP cameras (replace with your actual IP addresses and credentials)
+    camera_streams = [
+        "rtsp://username:password@192.168.1.100:554/stream",
+        "rtsp://username:password@192.168.1.101:554/stream",
+        "rtsp://username:password@192.168.1.102:554/stream",
+        "rtsp://username:password@192.168.1.103:554/stream",
+        "rtsp://username:password@192.168.1.104:554/stream",
+        "rtsp://username:password@192.168.1.105:554/stream",
+        "rtsp://username:password@192.168.1.106:554/stream"
+    ]
+
+    for i, stream in enumerate(camera_streams):
+        try:
+            cap = cv2.VideoCapture(stream)
+            if not cap.isOpened():
+                print(f"❌ Failed to open camera stream: {stream}")
+                continue  # Skip to the next camera stream
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    print("❌ Failed to grab frame from stream.")
+                    break
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+
+                for (x, y, w, h) in faces:
+                    # Draw rectangle around face
+                    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                    face_roi = gray[y:y+h, x:x+w]
+                    face_roi = cv2.resize(face_roi, (100, 100))
+                    label, confidence = recognizer.predict(face_roi)
+
+                    if confidence < 100:
+                        user_id = id_map.get(label, "Unknown")
+                        if mark_attendance(user_id):
+                            print(f"✅ Attendance marked for {user_id}")
+
+                # Display the resulting frame
+                cv2.imshow(f'Camera Feed {i}', frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+
+        except Exception as e:
+            print(f"❌ Error processing camera stream: {e}")
+        finally:
+            cap.release()
     cv2.destroyAllWindows()
     print("\n👋 Attendance system stopped")
 
