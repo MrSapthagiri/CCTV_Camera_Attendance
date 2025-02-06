@@ -97,8 +97,8 @@ def main():
                 if mark_attendance(user_id):
                     print(f"✅ Attendance marked for {user_id}")
             else:
-                user_id = "Unknown"
-                confidence_text = "Unknown"
+                user_id = "Unknown User"
+                confidence_text = "Unknown User"
                 color = (0, 0, 255)  # Red
             
             # Display name and confidence
