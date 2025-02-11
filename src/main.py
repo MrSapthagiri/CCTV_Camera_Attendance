@@ -40,13 +40,16 @@ def mark_attendance(user_id):
     if os.path.exists(attendance_file):
         with open(attendance_file, 'r') as f:
             if user_id in f.read():
+                print(f"❌ Attendance already marked for {user_id} today.")
                 return False
     
     # Mark attendance
     with open(attendance_file, 'a') as f:
         if os.path.getsize(attendance_file) == 0:
             f.write("User ID,Time\n")
+            print(f"✅ Created new attendance file for {date}.")
         f.write(f"{user_id},{time}\n")
+        print(f"✅ Attendance marked for {user_id} at {time}.")
     return True
 
 def main():
@@ -60,50 +63,55 @@ def main():
     
     # Initialize IP cameras (replace with your actual IP addresses and credentials)
     camera_streams = [
-        "rtsp://username:password@192.168.1.100:554/stream",
-        "rtsp://username:password@192.168.1.101:554/stream",
-        "rtsp://username:password@192.168.1.102:554/stream",
-        "rtsp://username:password@192.168.1.103:554/stream",
-        "rtsp://username:password@192.168.1.104:554/stream",
-        "rtsp://username:password@192.168.1.105:554/stream",
-        "rtsp://username:password@192.168.1.106:554/stream"
+        
+        "rtsp://Admin:Admin123@192.168.0.184:8080/h264_pcm.sdp",
     ]
 
     for i, stream in enumerate(camera_streams):
         try:
             cap = cv2.VideoCapture(stream)
             if not cap.isOpened():
-                print(f"❌ Failed to open camera stream: {stream}")
-                continue  # Skip to the next camera stream
+                print(f'❌ Failed to open camera stream: {stream}')
+                continue
             while True:
-                ret, frame = cap.read()
-                if not ret:
-                    print("❌ Failed to grab frame from stream.")
-                    break
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+                try:
+                    ret, frame = cap.read()
+                    if not ret:
+                        print("❌ Failed to grab frame from stream.")
+                        break
+                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
 
-                for (x, y, w, h) in faces:
-                    # Draw rectangle around face
-                    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-                    face_roi = gray[y:y+h, x:x+w]
-                    face_roi = cv2.resize(face_roi, (100, 100))
-                    label, confidence = recognizer.predict(face_roi)
+                    print(f"Faces detected: {len(faces)}")
 
-                    if confidence < 100:
+                    for (x, y, w, h) in faces:
+                        # Draw rectangle around face
+                        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                        face_roi = gray[y:y+h, x:x+w]
+                        face_roi = cv2.resize(face_roi, (100, 100))
+                        label, confidence = recognizer.predict(face_roi)
+
                         user_id = id_map.get(label, "Unknown")
-                        if mark_attendance(user_id):
-                            print(f"✅ Attendance marked for {user_id}")
+                        print(f"Recognized: {user_id} with confidence: {confidence}")
 
-                # Display the resulting frame
-                cv2.imshow(f'Camera Feed {i}', frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+                        if confidence < 100:
+                            print(f"Checking attendance for {user_id} with confidence: {confidence}")
+                            if mark_attendance(user_id):
+                                print(f"✅ Attendance marked for {user_id} with confidence: {confidence}")
+                            else:
+                                print(f"❌ Attendance already marked for {user_id} with confidence: {confidence}")
 
+                    # Display the resulting frame
+                    cv2.imshow(f'Camera Feed {i}', frame)
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
+                except Exception as e:
+                    print(f"❌ Error processing frame: {e}")
         except Exception as e:
             print(f"❌ Error processing camera stream: {e}")
         finally:
-            cap.release()
+            if 'cap' in locals() and cap.isOpened():
+                cap.release()
     cv2.destroyAllWindows()
     print("\n👋 Attendance system stopped")
 

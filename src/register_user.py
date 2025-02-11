@@ -61,7 +61,7 @@ def register_user():
         if key == 32:  # Press space to confirm registration
             print("User registered!")
 
-            img_path = f"images/registered/{user_id}.jpg"
+            img_path = f"images/registered/{employee_name.replace(' ', '_')}.jpg"
             cv2.imwrite(img_path, frame)
 
             # Generate face encoding
