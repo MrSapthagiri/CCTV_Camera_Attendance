@@ -1,8 +1,8 @@
-📷 # Camera Attendance System
+ # Camera Attendance System
 
 A Python-based facial recognition attendance system that uses your computer's webcam to register users and mark attendance.
 
-## 📋 Prerequisites
+## Prerequisites
 
 ### Python Version Compatibility
 - **Recommended**: Python 3.8 - 3.11
@@ -24,7 +24,7 @@ A Python-based facial recognition attendance system that uses your computer's we
   - Git (optional, for version control)
   - Visual Studio Code (recommended IDE)
 
-## 🚀 Detailed Installation Guide
+##  Detailed Installation Guide
 
 1. **Check Python Version**
    ```bash
@@ -89,7 +89,7 @@ A Python-based facial recognition attendance system that uses your computer's we
 - **pymongo**: MongoDB database operations
 - **Pillow**: Image processing
 
-## 📊 MongoDB Setup and Configuration
+##  MongoDB Setup and Configuration
 
 ### Installing MongoDB
 1. **Download MongoDB Community Server**
@@ -178,7 +178,7 @@ This will:
    - "Authentication failed": Check connection string
    - "Duplicate key": Record already exists
 
-## 📁 Detailed Project Structure
+##  Detailed Project Structure
 
 ```
 Camera Attendance System/
@@ -201,7 +201,7 @@ Camera Attendance System/
 └── README.md              # This documentation
 ```
 
-## 🎯 Detailed Usage Guide
+##  Detailed Usage Guide
 
 1. **First-Time Setup**
    ```bash
@@ -244,7 +244,7 @@ Camera Attendance System/
    - Start face detection
    - Record attendance when faces are recognized
 
-## 🛠️ Common Issues and Solutions
+##  Common Issues and Solutions
 
 1. **Camera Not Found**
    ```bash
@@ -268,7 +268,7 @@ Camera Attendance System/
    pip install opencv-python==4.8.1.78 opencv-contrib-python==4.8.1.78
    ```
 
-## 💡 Development Tips
+##  Development Tips
 
 - Use Visual Studio Code with Python extension
 - Install pylint for code quality
@@ -276,7 +276,7 @@ Camera Attendance System/
 - Keep Python and packages updated
 - Test in different lighting conditions
 
-## 🔒 Security Notes
+##  Security Notes
 
 - Face images are stored locally
 - Encodings are saved as encrypted pickle files
@@ -284,7 +284,7 @@ Camera Attendance System/
 - No cloud services are used
 - Camera access is required
 
-## 🆘 Getting Help
+##  Getting Help
 
 If you encounter issues:
 1. Check Python version compatibility
